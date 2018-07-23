@@ -5,6 +5,9 @@ An e-Paper display library for
 a [Micropython](https://micropython.org/) variant,
 with a demo that draws a Julia or Mandlebrot fractal on the display.
 
+![Photo of an m4 displaying a Julia fractal](photos/m4-epaper27-julia.jpg?raw=true "Julia on a 2.7-inch hat")
+[as tweeted](https://twitter.com/gpshead/status/1005603935413915648)
+
 # Hardware and Software Requirements
 
 This code was written and tested on an Adafruit Metro M4 running
