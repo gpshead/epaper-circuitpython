@@ -1,7 +1,9 @@
 # e-Paper Display driver code for Circuitpython with a fractal demo
 
-An e-Paper display library for Circuitpython (a Micropython variant) with a
-demo that draws a Julia or Mandlebrot fractal on the display.
+An e-Paper display library for
+[Circuitpython](https://github.com/adafruit/circuitpython),
+a [Micropython](https://micropython.org/) variant,
+with a demo that draws a Julia or Mandlebrot fractal on the display.
 
 # Hardware and Software Requirements
 
@@ -46,4 +48,4 @@ has a MIT style license on it so the ported code retains that license.
 
 # Disclaimer
 
-This not an official Google product.
+This is not an official Google product.
