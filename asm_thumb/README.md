@@ -5,7 +5,7 @@ the code, I was happy in the "Yay, it works!" sense, but wasn't
 satisfied with the speed _and_ wanted to get my hands dirty with
 some of the fancier Micropython features and learn some ARM assembly.
 
-A microcontroller running at 10-25 the clock speed of my old PCjr
+A microcontroller running at 10x-25x the clock speed of my old PCjr
 should have no trouble spitting out fractals in the blink of an eye,
 made even easier as the M4 has floating point hardware!
 Challenge accepted, lets give it a whirl.
