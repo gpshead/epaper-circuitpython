@@ -1,8 +1,8 @@
-# e-Paper Display driver code for Circuitpython with a fractal demo
+# e-Paper Display driver code for CircuitPython with a fractal demo
 
 An e-Paper display library for
-[Circuitpython](https://github.com/adafruit/circuitpython),
-a [Micropython](https://micropython.org/) variant,
+[CircuitPython](https://github.com/adafruit/circuitpython),
+a [MicroPython](https://micropython.org/) variant,
 with a demo that draws a Julia or Mandlebrot fractal on the display.
 
 ![Photo of an m4 displaying a Julia fractal](photos/m4-epaper27-julia.jpg?raw=true "Julia on a 2.7-inch hat")
@@ -11,7 +11,7 @@ with a demo that draws a Julia or Mandlebrot fractal on the display.
 # Hardware and Software Requirements
 
 This code was written and tested on an Adafruit Metro M4 running
-Circuitpython 3.0.
+CircuitPython 3.0.
 
 The e-Paper displays are the monochrome SPI varities from Waveshare.
 Six digital I/O pins are required.

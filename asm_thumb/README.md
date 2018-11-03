@@ -1,4 +1,4 @@
-# ARM thumb assembly enabled CircuitPython fractal demo optimizations
+# ARM Thumb Assembly CircuitPython Fractal Demo Optimizations
 
 This package is where the fun continues... when originally writing
 the code, I was happy in the "Yay, it works!" sense, but wasn't
