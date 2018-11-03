@@ -42,6 +42,10 @@ Julia fractal computation performance.
 
 7.74 seconds
 
+### + Removing the `use_julia` conditional
+
+7.5 seconds
+
 # Future work
 
 MicroPython has other intermediate optimization levels available that

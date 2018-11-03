@@ -97,12 +97,10 @@ def _fractal_iterate_fast(r0) -> int:
 #  https://github.com/ActiveState/code/blob/master/recipes/Python/579143_Mandelbrot_Set_made_simple/recipe-579143.py
 #  https://github.com/ActiveState/code/blob/master/recipes/Python/577120_Julia_fractals/recipe-577120.py
 #  http://0pointer.de/blog/projects/mandelbrot.html
-def get_fractal(width, height, use_julia=True):
+def get_fractal(width, height):
     scale = 1/(width/1.5)
-    if use_julia:
-        center_x, center_y = 1.15, 1.6  # Julia
-    else:
-        center_x, center_y = 2.2, 1.5  # Mandlebrot
+    center_x, center_y = 1.15, 1.6  # Julia
+    #center_x, center_y = 2.2, 1.5  # Mandlebrot
 
     fractal = monobitmap.MonoBitmap(width, height)
     set_pixel_fast = fractal.set_pixel_fast  # faster name lookup
@@ -129,10 +127,8 @@ def get_fractal(width, height, use_julia=True):
         scaled_y_j_m_cx = (y*scale - center_y)*1j - center_x
         for x in range(width):
             c = x*scale + scaled_y_j_m_cx
-            if use_julia:
-                n = iterate(julia_c, c)  # Julia
-            else:
-                n = iterate(c)  # Mandlebrot
+            n = iterate(julia_c, c)  # Julia
+            #n = iterate(c)  # Mandlebrot
 
             set_pixel_fast(set_pixel_fast_input, x, n & 1)
 
