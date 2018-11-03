@@ -24,7 +24,6 @@ class MonoBitmap:
 
     Attributes:
       bit_buf: The raw bitmap buffer bytearray.  Do not resize!
-      fast_in: Input array to pass to set_pixel_fast.  Do not modify.
       width: The width.  Do not modify.
       height: The height.  Do not modify.
 
