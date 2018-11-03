@@ -26,6 +26,7 @@
 # /dev/sda1       /mnt            vfat    user,noauto     0       0
 #
 mount /dev/sda1
-rsync --checksum --inplace -r *.py third_party /mnt
+rsync --checksum --inplace --exclude '*README*' --exclude '*LICENSE' \
+      -r *.py asm_thumb third_party /mnt
 sync
 #umount /mnt
