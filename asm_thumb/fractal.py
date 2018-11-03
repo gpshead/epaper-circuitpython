@@ -105,7 +105,8 @@ def get_fractal(width, height, use_julia=True):
         center_x, center_y = 2.2, 1.5  # Mandlebrot
 
     fractal = monobitmap.MonoBitmap(width, height)
-    set_pixel = fractal.set_pixel  # faster name lookup
+    set_pixel_fast = fractal.set_pixel_fast  # faster name lookup
+    set_pixel_fast_input = fractal.fast_in
     if _fractal_iterate_fast:
         # Extra space in asm_float_in is for debugging.
         asm_float_in = array.array('f', (0,0,0,0,0,0,0,0))
@@ -117,13 +118,14 @@ def get_fractal(width, height, use_julia=True):
             asm_float_in[2] = z.real
             asm_float_in[3] = z.imag
             return _fractal_iterate_fast(asm_float_in)
-        print('Using asm_thumb iteration.')
+        print('Using asm_thumb _fractal_iterate and set_pixel.')
     else:
         iterate = _fractal_iterate
     julia_c = 0.3+0.6j  # Only load the complex constant once.
 
     start_time = time.monotonic()
     for y in range(height):
+        set_pixel_fast_input[2] = y
         scaled_y_j_m_cx = (y*scale - center_y)*1j - center_x
         for x in range(width):
             c = x*scale + scaled_y_j_m_cx
@@ -132,7 +134,7 @@ def get_fractal(width, height, use_julia=True):
             else:
                 n = iterate(c)  # Mandlebrot
 
-            set_pixel(x, y, n & 1)
+            set_pixel_fast(set_pixel_fast_input, x, n & 1)
 
         print('*', end='')
     print()

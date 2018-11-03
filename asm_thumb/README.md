@@ -34,9 +34,13 @@ Julia fractal computation performance.
 
 23.9 seconds
 
-## `fractal_iterate()` implemented using `asm_thumb`
+## + `_fractal_iterate()` implemented using `asm_thumb`
 
 12.4 seconds
+
+## + `MonoBitmap.set_pixel` implemented using `asm_thumb`
+
+7.74 seconds
 
 # Future work
 
