@@ -22,8 +22,8 @@ import neopixel_write
 import random
 import time
 
-#from third_party.waveshare import epd2in7 as connected_epd
-from third_party.waveshare import epd2in9 as connected_epd
+from third_party.waveshare import epd2in7 as connected_epd
+#from third_party.waveshare import epd2in9 as connected_epd
 
 import fractal
 import monobitmap
