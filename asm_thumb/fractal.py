@@ -18,9 +18,10 @@
 
 """Compute a Mandlebrot or Julia fractal into a bitmap."""
 
+import array
 import time
 
-import monobitmap
+from . import monobitmap
 
 
 MAX_ITERATIONS_1 = 40 + 1
