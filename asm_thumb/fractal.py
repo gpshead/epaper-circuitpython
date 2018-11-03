@@ -36,6 +36,58 @@ def _fractal_iterate(c, z=0, _abs=abs, _range=range) -> int:
     return -1
 
 
+# Data must be passed in via an array as micropython.asm_thumb doesn't
+# support float arguments.
+# r0 must be a pointer to an array of four 32-bit floats
+# representing our c and z complex numbers:  [cr, cj, zr, zj]
+@micropython.asm_thumb
+def _fractal_iterate_fast(r0) -> int:
+    mov(r5, r0)
+    vldr(s0, [r5, 0])  # cr real
+    vldr(s1, [r5, 4])  # cj imaginary
+    vldr(s5, [r5, 8])  # zr real
+    vldr(s3, [r5, 12])  # zj imaginary
+    mov(r6, 41)  # MAX_ITERATIONS+1
+    mov(r4, 2)
+    vmov(s4, r4)
+    vcvt_f32_s32(s4, s4)  # s4 = 2.0; @asm_thumb doesn't do arm float immediates.
+    # for n in range(MAX_ITERATIONS_1):
+    mov(r0, 0)  # r0 = n; current iteration number
+    label(LOOP)
+    vmov(r2, s5)  # start with zr real in s2.  The loop
+    vmov(s2, r2)  # always begins/ends/cycles with it in s5.
+    # complex z = z * z + c
+    vmul(s6, s2, s2)
+    vmul(s7, s3, s3)
+    vsub(s5, s6, s7) # z = z*z  real part (zr^2 - zj^2)  [into a NEW reg]
+    vmul(s6, s2, s3)
+    vadd(s3, s6, s6) # z = z*z  imaginary part (zr*zj + zr*zj)
+    # REG: s5 is the new zr real
+    # REG: s3 is (still) zj imaginary
+    vadd(s5, s5, s0) # zr += cr  real part
+    vadd(s3, s3, s1) # zj += cj  imaginary part
+    # complex abs(z)
+    vmul(s6, s5, s5)  # zr^2
+    vmul(s7, s3, s3)  # zj^2
+    vadd(s6, s6, s7)
+    vsqrt(s6, s6)  # sqrt(zr^2 + zj^2)
+    # if abs(z) > 2
+    vcmp(s6, s4)
+    vmrs(APSR_nzcv, FPSCR)
+    bgt(END)  # return n
+    add(r0, 1)
+    cmp(r0, r6)
+    blt(LOOP)
+    mov(r0, 0)  # return -1
+    sub(r0, 1)
+    label(END)  # return value is already in r0
+    # expose state for debugging purposes:
+#    vstr(s6, [r5, 0])  # abs(z)
+#    vstr(s4, [r5, 4])  # 2.0
+#    vstr(s5, [r5, 8])  # zr real
+#    vstr(s3, [r5, 12])  # zj imaginary
+
+
 # Created based on looking up how others have written Mandlebrot and Julia
 # fractal computations in Python.  Well known algorithms.  Python's
 # built-in complex number support makes them easy to express in code.
@@ -53,7 +105,20 @@ def get_fractal(width, height, use_julia=True):
 
     fractal = monobitmap.MonoBitmap(width, height)
     set_pixel = fractal.set_pixel  # faster name lookup
-    iterate = _fractal_iterate  # faster name lookup
+    if _fractal_iterate_fast:
+        # Extra space in asm_float_in is for debugging.
+        asm_float_in = array.array('f', (0,0,0,0,0,0,0,0))
+        def iterate(c, z=0j) -> int:
+            c = complex(c)
+            z = complex(z)
+            asm_float_in[0] = c.real
+            asm_float_in[1] = c.imag
+            asm_float_in[2] = z.real
+            asm_float_in[3] = z.imag
+            return _fractal_iterate_fast(asm_float_in)
+        print('Using asm_thumb iteration.')
+    else:
+        iterate = _fractal_iterate
     julia_c = 0.3+0.6j  # Only load the complex constant once.
 
     start_time = time.monotonic()
