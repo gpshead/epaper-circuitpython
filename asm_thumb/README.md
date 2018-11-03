@@ -1,4 +1,4 @@
-# ARM Thumb Assembly CircuitPython Fractal Demo Optimizations
+# ARM Assembly CircuitPython Fractal Optimizations
 
 This package is where the fun continues... when originally writing
 the code, I was happy in the "Yay, it works!" sense, but wasn't
@@ -24,7 +24,21 @@ and install it in your M4.
 TODO: Update this section with modern instructions on how to do this
 build and flashing the next time I update that tree.
 
-## Future work
+# Resulting Performance
+
+Using the `third_party.waveshare.epd2in7` display size (176x264) on my Adafruit
+Metro M4 Express (120Mhz SAMD51J19) under CircuitPython 3.0 I observed this
+Julia fractal computation performance.
+
+## Original optimized pure Python code
+
+23.9 seconds
+
+## `fractal_iterate()` implemented using `asm_thumb`
+
+12.4 seconds
+
+# Future work
 
 MicroPython has other intermediate optimization levels available that
 do not entail writing native assembly code.  I want to explore those.

@@ -25,8 +25,14 @@ import time
 from third_party.waveshare import epd2in7 as connected_epd
 #from third_party.waveshare import epd2in9 as connected_epd
 
-import fractal
-import monobitmap
+try:
+    from asm_thumb import fractal
+    from asm_thumb import monobitmap
+    HAVE_ASM = True
+except ImportError:
+    import fractal
+    import monobitmap
+    HAVE_ASM = False
 
 
 def sample_keys():
@@ -64,13 +70,15 @@ class StatusLED:
         neopixel_write.neopixel_write(self._pin, b'\0\0\0')
 
     def sleep(self):
-        neopixel_write.neopixel_write(self._pin, b'\1\0\0')
+        neopixel_write.neopixel_write(self._pin,
+                                      b'\0\0\1' if HAVE_ASM else b'\1\0\0')
 
     def busy(self):
         neopixel_write.neopixel_write(self._pin, b'\0\7\2')
 
     def ready(self):
-        neopixel_write.neopixel_write(self._pin, b'\7\0\1')
+        neopixel_write.neopixel_write(self._pin,
+                                      b'\1\2\7' if HAVE_ASM else b'\7\0\1')
 
 #    def __del__(self):  # Not implemented by micropython!
 #        self._pin.deinit()
@@ -83,6 +91,10 @@ def main():
     epd = connected_epd.EPD()
     print("Initializing display...")
     epd.init()
+    if HAVE_ASM:
+      print("@micropython.asm_thumb implementation loaded.")
+    else:
+      print("Pure Python implementation loaded.")
 
     keys = [1,]  # Print message on start.
     while True:
