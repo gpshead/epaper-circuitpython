@@ -246,8 +246,7 @@ def get_fractal(width: int, height: int, use_julia: bool = True) -> monobitmap.M
     start_time = monotonic()
     for y in range(height):
         compute_row_and_set_pixels(xloop_params, y)
-        print('*', end='')
     end_time = monotonic()
-    print('\nComputation took', end_time - start_time, 'seconds.')
+    print('Computation took', end_time - start_time, 'seconds.')
     return fractal
 
