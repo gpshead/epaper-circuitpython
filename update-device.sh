@@ -29,4 +29,4 @@ mount /dev/sda1
 rsync --checksum --inplace --exclude '*README*' --exclude '*LICENSE' \
       -r *.py asm_thumb third_party /mnt
 sync
-#umount /mnt
+umount /mnt
