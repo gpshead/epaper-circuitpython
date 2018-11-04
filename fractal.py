@@ -23,13 +23,14 @@ import time
 import monobitmap
 
 
-MAX_ITERATIONS_1 = 40 + 1
+MAX_ITERATIONS = 40
 
 
 # Avoiding the builtin abs lookup in the loop is ~10% faster.
 # Avoiding the builtin range lookup gains another ~3%.
-def _fractal_iterate(c, z=0, _abs=abs, _range=range) -> int:
-    for n in _range(MAX_ITERATIONS_1):
+def _fractal_iterate(c, z=0, max_iter1=MAX_ITERATIONS+1,
+                     _abs=abs, _range=range) -> int:
+    for n in _range(max_iter1):
         z = z * z + c
         if _abs(z) > 2:
             return n
@@ -44,7 +45,7 @@ def _fractal_iterate(c, z=0, _abs=abs, _range=range) -> int:
 #  https://github.com/ActiveState/code/blob/master/recipes/Python/579143_Mandelbrot_Set_made_simple/recipe-579143.py
 #  https://github.com/ActiveState/code/blob/master/recipes/Python/577120_Julia_fractals/recipe-577120.py
 #  http://0pointer.de/blog/projects/mandelbrot.html
-def get_fractal(width, height, use_julia=True):
+def get_fractal(width, height, use_julia=True, max_iterations=MAX_ITERATIONS):
     scale = 1/(width/1.5)
     if use_julia:
         center_x, center_y = 1.15, 1.6  # Julia
@@ -55,6 +56,7 @@ def get_fractal(width, height, use_julia=True):
     set_pixel = fractal.set_pixel  # faster name lookup
     iterate = _fractal_iterate  # faster name lookup
     julia_c = 0.3+0.6j  # Only load the complex constant once.
+    max_iterations += 1
 
     start_time = time.monotonic()
     for y in range(height):
@@ -62,9 +64,9 @@ def get_fractal(width, height, use_julia=True):
         for x in range(width):
             c = x*scale + scaled_y_j_m_cx
             if use_julia:
-                n = iterate(julia_c, c)  # Julia
+                n = iterate(julia_c, c, max_iter1=max_iterations)  # Julia
             else:
-                n = iterate(c)  # Mandlebrot
+                n = iterate(c, max_iter1=max_iterations)  # Mandlebrot
 
             set_pixel(x, y, n & 1)
 

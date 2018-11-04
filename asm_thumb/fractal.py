@@ -220,7 +220,8 @@ def _xloop_iterate_and_set_pixels(r0, r1):
 #  https://github.com/ActiveState/code/blob/master/recipes/Python/579143_Mandelbrot_Set_made_simple/recipe-579143.py
 #  https://github.com/ActiveState/code/blob/master/recipes/Python/577120_Julia_fractals/recipe-577120.py
 #  http://0pointer.de/blog/projects/mandelbrot.html
-def get_fractal(width: int, height: int, use_julia: bool = True) -> monobitmap.MonoBitmap:
+def get_fractal(width: int, height: int, use_julia: bool = True,
+                max_iterations: int = MAX_ITERATIONS) -> monobitmap.MonoBitmap:
     scale = 1/(width/1.5)
     if use_julia:
         center_x, center_y = 1.15, 1.6  # Julia
@@ -237,7 +238,7 @@ def get_fractal(width: int, height: int, use_julia: bool = True) -> monobitmap.M
     struct.pack_into('fffff', xloop_params, 0x0c,
                      scale, center_x, center_y,
                      julia_c.real, julia_c.imag)
-    xloop_params[8] = MAX_ITERATIONS
+    xloop_params[8] = max_iterations
 
     # Make these local
     compute_row_and_set_pixels = _xloop_iterate_and_set_pixels
