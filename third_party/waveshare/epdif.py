@@ -32,10 +32,11 @@ import busio
 import digitalio
 
 # Pin definition as hooked up on my Metro M4 (reassigned to instances in init)
-RST_PIN = board.D8
+# These pins are also present on the ItsyBitsy M4
+RST_PIN = board.D11
 DC_PIN = board.D9
 CS_PIN = board.D10
-BUSY_PIN = board.D6
+BUSY_PIN = board.D7
 
 _SPI_MOSI = board.MOSI
 _SPI_CLK = board.SCK
