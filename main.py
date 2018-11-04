@@ -18,7 +18,6 @@
 
 import board
 import digitalio
-import neopixel_write
 import random
 import time
 
@@ -26,10 +25,11 @@ from third_party.waveshare import epd2in7 as connected_epd
 #from third_party.waveshare import epd2in9 as connected_epd
 
 try:
+    # Optimized version - requires a custom CircuitPython build.
     from asm_thumb import fractal
     from asm_thumb import monobitmap
     HAVE_ASM = True
-except ImportError:
+except (ImportError, SyntaxError):
     import fractal
     import monobitmap
     HAVE_ASM = False
@@ -59,29 +59,32 @@ def sample_keys():
 
 
 class StatusLED:
-    """A simple interface to the neopixel for our purpose."""
+    """A simple interface to the onboard pixel."""
 
     def __init__(self):
-        self._pin = digitalio.DigitalInOut(board.NEOPIXEL)
-        self._pin.direction = digitalio.Direction.OUTPUT
+        if hasattr(board, 'NEOPIXEL'):
+            import neopixel
+            self._led = nepixel.NeoPixel(board.NEOPIXEL, 1)
+            self._led.brightness = 1/16
+        elif hasattr(board, 'APA102_MOSI'):
+            import adafruit_dotstar
+            self._led = adafruit_dotstar.DotStar(
+                board.APA102_SCK, board.APA102_MOSI, 1)
+            self._led.brightness = 0.7
+        else:
+            self._led = [None]
 
-    # The metro M4 appears to be a GRB neopixel.
     def off(self):
-        neopixel_write.neopixel_write(self._pin, b'\0\0\0')
+        self._led[0] = b'\0\0\0'
 
     def sleep(self):
-        neopixel_write.neopixel_write(self._pin,
-                                      b'\0\0\1' if HAVE_ASM else b'\1\0\0')
+        self._led[0] = b'\x10\0\0' if HAVE_ASM else b'\0\0\x10'
 
     def busy(self):
-        neopixel_write.neopixel_write(self._pin, b'\0\7\2')
+        self._led[0] = b'\x50\x10\0'
 
     def ready(self):
-        neopixel_write.neopixel_write(self._pin,
-                                      b'\1\2\7' if HAVE_ASM else b'\7\0\1')
-
-#    def __del__(self):  # Not implemented by micropython!
-#        self._pin.deinit()
+        self._led[0] = b'\x70\x20\x10' if HAVE_ASM else b'\x10\0\x70'
 
 
 def main():
