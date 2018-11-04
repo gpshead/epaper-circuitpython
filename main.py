@@ -77,14 +77,11 @@ class StatusLED:
     def off(self):
         self._led[0] = b'\0\0\0'
 
-    def sleep(self):
-        self._led[0] = b'\x10\0\0' if HAVE_ASM else b'\0\0\x10'
-
     def busy(self):
         self._led[0] = b'\x50\x10\0'
 
     def ready(self):
-        self._led[0] = b'\x70\x20\x10' if HAVE_ASM else b'\x10\0\x70'
+        self._led[0] = b'\x10\x50\0' if HAVE_ASM else b'\x10\0\x70'
 
 
 def main():
