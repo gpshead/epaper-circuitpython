@@ -25,17 +25,7 @@ import time
 from . import monobitmap
 
 
-MAX_ITERATIONS_PLUS_1 = 40 + 1
-
-
-# Avoiding the builtin abs lookup in the loop is ~10% faster.
-# Avoiding the builtin range lookup gains another ~3%.
-def _fractal_iterate(c, z=0, _abs=abs, _range=range) -> int:
-    for n in _range(MAX_ITERATIONS_PLUS_1):
-        z = z * z + c
-        if _abs(z) > 2:
-            return n
-    return -1
+MAX_ITERATIONS = 40
 
 
 # Data must be passed in via an array as micropython.asm_thumb doesn't
@@ -127,11 +117,13 @@ def _xloop_iterate_and_set_pixels(r0, r1):
 
     ####
     label(FRACTAL_ITERATE)
+    # MicroPython is supposed to have named constant support for asm_thumb but
+    # I was unable to get a build with that to work.
     ldr(r6, [r0, 0x20])  # MAX_ITERATIONS
     mov(r4, 2)
     vmov(s4, r4)
     vcvt_f32_s32(s4, s4)  # s4 = 2.0; @asm_thumb doesn't do arm float immediates.
-    # for n in range(MAX_ITERATIONS_PLUS_1):
+    # for n in range(MAX_ITERATIONS+1):
     mov(r0, 0)  # r0 = n; current iteration number
     label(FI_LOOP)
     vmov(r2, s5)  # start with zr real in s2.  The loop
@@ -221,7 +213,7 @@ def get_fractal(width: int, height: int, use_julia: bool = True) -> monobitmap.M
     struct.pack_into('fffff', xloop_params, 0x0c,
                      scale, center_x, center_y,
                      julia_c.real, julia_c.imag)
-    xloop_params[8] = MAX_ITERATIONS_PLUS_1 - 1
+    xloop_params[8] = MAX_ITERATIONS
 
     # Make these local
     compute_row_and_set_pixels = _xloop_iterate_and_set_pixels
