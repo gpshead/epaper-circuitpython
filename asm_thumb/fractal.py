@@ -77,8 +77,10 @@ def _xloop_iterate_and_set_pixels(r0, r1):
     vsub(s14, s14, s15)     # REG: s14 <- (c_real)
 
     #     if use_julia:
-    ldr(r7, [r0, 0x08])   # REG: r7 <- use_julia (sets branch flags)
+    ldr(r7, [r0, 0x08])   # REG: r7 <- use_julia
+    cmp(r7, 0)
     beq(MANDLEBROT)
+    label(JULIA)
     #         v: int = iterate(julia_c, c)  # Julia
     # iterate c= parameter.
     vldr(s0, [r0, 0x18])   # REG: s0 <- julia_c real

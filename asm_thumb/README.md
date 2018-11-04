@@ -48,7 +48,11 @@ Julia fractal computation performance.
 
 ## Reimplement the entire `for x in range(width)` loop using asm
 
-**0.211 seconds**
+0.211 seconds
+
+## + Fix the bug in the above
+
+**0.199 seconds** now that we are computing the correct thing.
 
 # You Made This Look Easy / How Hard Was This?
 
@@ -72,12 +76,13 @@ internally.
 
 ## Known Issues
 
-I am making this commit with a known issue in my x-loop code.  Can you
-spot it?  It took me a very long time to debug this one, I only noticed it
-when I started playing with a newly acquired epd2in9 display which made
-me actually look closely at what was on the screen...
-
-I will describe it later in the commit that includes the fix.
+Fixed now, but I made commit 0d3efe94c84b84237c1e3193fe5746fa5c2eec7c with a
+known issue in my x-loop assembly code.  Can you spot it?  If so, you must have
+the ARM Thumb architecture reference manual memorized.  :P  It took me a very
+long time to debug that one.  I only noticed it when I started playing with a
+newly acquired epd2in9 display which made me actually look closely at what was
+on the screen...  One row of pixels at the edge was simply wrong.  Look at
+the diff to see why.  I spent many hours over many days puzzling over that.
 
 # Future work
 
