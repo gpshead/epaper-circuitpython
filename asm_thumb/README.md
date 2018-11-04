@@ -34,17 +34,50 @@ Julia fractal computation performance.
 
 23.9 seconds
 
-## + `_fractal_iterate()` implemented using `asm_thumb`
+## + `_fractal_iterate()` implemented using asm
 
 12.4 seconds
 
-## + `MonoBitmap.set_pixel` implemented using `asm_thumb`
+## + `MonoBitmap.set_pixel` implemented using asm
 
 7.74 seconds
 
 ### + Removing the `use_julia` conditional
 
 7.5 seconds
+
+## Reimplement the entire `for x in range(width)` loop using asm
+
+**0.211 seconds**
+
+# You Made This Look Easy / How Hard Was This?
+
+It wasn't easy!  I spent numerous multi-hour stretches on random evenings
+or weekends in early 2018 weeks hammering this out.  I wasn't using git
+to track my work at the time, though I saved various snapshots of my progress
+which I used to recreate parts of my journey in this repository.
+
+## Challenge: Debugging `@micropython.asm_thumb` Code
+
+It is painful.  This code is ultimately native asm, you cannot simply do
+the equivalent of `print()` debugging or even try things out in a REPL
+as you can with normal Python code.  Despite its appearance to fit within
+Python syntax, this really is just a weird looking subset of ARM Thumb ASM.
+
+In the earlier `_fractal_iterate` version of the code you may have noticed that
+I made the `fast_in` array extra large and left some debugging code commented
+out.  That was from a debugging effort where I had it export some internal
+state so I could attempt to reason about what was or wasn't going right
+internally.
+
+## Known Issues
+
+I am making this commit with a known issue in my x-loop code.  Can you
+spot it?  It took me a very long time to debug this one, I only noticed it
+when I started playing with a newly acquired epd2in9 display which made
+me actually look closely at what was on the screen...
+
+I will describe it later in the commit that includes the fix.
 
 # Future work
 
