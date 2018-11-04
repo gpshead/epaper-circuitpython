@@ -50,13 +50,26 @@ MAX_ITERATIONS = 40
 @micropython.asm_thumb
 def _xloop_iterate_and_set_pixels(r0, r1):
     # scaled_y_j: float = (y*scale - center_y)*1j
+    push({r8,r9,r10,r11,r12})
+    mov(r8, r1)             # REG: r8 <- y, free REG r1
+    vmov(s11, r8)
+    vcvt_f32_s32(s11, s11)  # REG: s11 <- y (float)
+    ldr(r1, [r0, 0x00])     # address of bit_buf
+    ldr(r7, [r0, 0x04])     # width
+    mov(r9, r1)             # REG: r9 <- address of bit_buf
+    ldr(r1, [r0, 0x20])     # MAX_ITERATIONS
+    mov(r10, r7)            # REG: r10 <- width
+    mov(r11, r1)            # REG: r11 <- MAX_ITERATIONS
+    ldr(r7, [r0, 0x08])     # use_julia
+    mov(r12, r7)            # REG: r12 <- use_julia
     vldr(s10, [r0, 0x0c])   # REG: s10 <- scale
-    vmov(s20, r1)           # REG: s20 <- y (int), free REG r1
-    vcvt_f32_s32(s11, s20)  # REG: s11 <- y (float)
     vldr(s15, [r0, 0x10])   # REG: s15 <- center_x
     vldr(s12, [r0, 0x14])   # REG: s12 <- center_y
     vmul(s13, s11, s10)
     vsub(s12, s13, s12)     # REG: s12 <- scaled_y_j (c_imag)
+    vldr(s0, [r0, 0x18])    # REG: s0 <- julia_c real
+    vldr(s1, [r0, 0x1c])    # REG: s1 <- julia_c imag
+
     # for x in range(width):
     mov(r1, 0)              # REG: r1 <- x
     label(X_RANGE_START)
@@ -67,17 +80,20 @@ def _xloop_iterate_and_set_pixels(r0, r1):
     vsub(s14, s14, s15)     # REG: s14 <- (c_real)
 
     #     if use_julia:
-    ldr(r7, [r0, 0x08])   # REG: r7 <- use_julia
+    mov(r7, r12)            # REG: r7 <- use_julia
     cmp(r7, 0)
     beq(MANDLEBROT)
     label(JULIA)
     #         v: int = iterate(julia_c, c)  # Julia
     # iterate c= parameter.
-    vldr(s0, [r0, 0x18])   # REG: s0 <- julia_c real
-    vldr(s1, [r0, 0x1c])   # REG: s1 <- julia_c imag
+    # (done before the loop - s0 and s1 are not clobbered by our code)
+    #vldr(s0, [r0, 0x18])   # REG: s0 <- julia_c real
+    #vldr(s1, [r0, 0x1c])   # REG: s1 <- julia_c imag
     # iterate z= parameter.
+    ##vmov(s5, s14)
     vmov(r7, s14)
     vmov(s5, r7)           # REG: s5 <- c_real
+    ##vmov(s3, s12)
     vmov(r7, s12)
     vmov(s3, r7)           # REG: s3 <- c_imag
     b(CALL_ITERATE)
@@ -86,8 +102,10 @@ def _xloop_iterate_and_set_pixels(r0, r1):
     label(MANDLEBROT)
     #         v: int = iterate(c, 0)  # Mandlebrot
     # iterate c= parameter.
+    ##vmov(s0, s14)
     vmov(r7, s14)
     vmov(s0, r7)           # REG: s0 <- c_real
+    ##vmov(s1, s12)
     vmov(r7, s12)
     vmov(s1, r7)           # REG: s1 <- c_imag
     # iterate z= parameter.
@@ -98,18 +116,17 @@ def _xloop_iterate_and_set_pixels(r0, r1):
     label(CALL_ITERATE)
     # Input: s0, s1, s5, s3
     # Output: r0
-    push({r0, r1})
+    #push({r0})
     bl(FRACTAL_ITERATE)
     #     set_pixel(x, y, v)
-    # Inputs: r0 (array), r1 (x), r2 (value), s20 (y)
-    # set_pixel_fast v= parameter is the result of iterate
+    # Inputs: r9 (&bit_buf), r10 (width), r1 (x), r2 (value), r8 (y)
+    # set_pixel v= parameter is the result of iterate from r0
     mov(r2, r0)
-    # set_pixel_fast array and x= parameters are our r0 and r1.
-    # from before we called iterate.
-    pop({r0, r1})
+    #pop({r0})
+    # set_pixel x= parameters is already in r1 due to the loop.
     bl(SET_PIXEL)
 
-    ldr(r7, [r0, 0x04])   # REG: r7 <- width
+    mov(r7, r10)  # REG: r7 <- width
     add(r1, 1)  # x += 1
     cmp(r1, r7)  # if x < width, repeat the loop
     blt(X_RANGE_START)
@@ -117,21 +134,24 @@ def _xloop_iterate_and_set_pixels(r0, r1):
 
     ####
     label(FRACTAL_ITERATE)
-    # MicroPython is supposed to have named constant support for asm_thumb but
-    # I was unable to get a build with that to work.
-    ldr(r6, [r0, 0x20])  # MAX_ITERATIONS
-    mov(r4, 2)
-    vmov(s4, r4)
-    vcvt_f32_s32(s4, s4)  # s4 = 2.0; @asm_thumb doesn't do arm float immediates.
+    mov(r6, r11)  # r6 <- MAX_ITERATIONS
+    # @asm_thumb doesn't do arm float immediates on vmov,
+    # otherwise we could just write vmov(r4, 4.0).
+    movt(r4, 0x4080)  # r4 <- 32bit floating point 4.0 (2.0^2) 0x40800000
+    ##mov(r4, 4)  # r4 <- 2^2
+    vmov(s4, r4)  # s4 <- 2.0^2
+    ##vcvt_f32_s32(s4, s4)  # s4 = 2.0^2;
     # for n in range(MAX_ITERATIONS+1):
     mov(r0, 0)  # r0 = n; current iteration number
     label(FI_LOOP)
     vmov(r2, s5)  # start with zr real in s2.  The loop
     vmov(s2, r2)  # always begins/ends/cycles with it in s5.
+    ##vmov(s2, s5) not supported by @arm_thumb
     # complex z = z * z + c
-    vmul(s6, s2, s2)
-    vmul(s7, s3, s3)
-    vsub(s5, s6, s7) # z = z*z  real part (zr^2 - zj^2)  [into a NEW reg]
+    vmul(s5, s3, s3) # zj^2
+    vmul(s6, s2, s2) # zr^2
+    vsub(s5, s6, s5) # z = z*z  real part (zr^2 - zj^2)  [into a NEW reg]
+    ##vmls(s5, s6, s5) not supported by @arm_thumb
     vmul(s6, s2, s3)
     vadd(s3, s6, s6) # z = z*z  imaginary part (zr*zj + zr*zj)
     # REG: s5 is the new zr real
@@ -141,8 +161,10 @@ def _xloop_iterate_and_set_pixels(r0, r1):
     # complex abs(z)
     vmul(s6, s5, s5)  # zr^2
     vmul(s7, s3, s3)  # zj^2
-    vadd(s6, s6, s7)
-    vsqrt(s6, s6)  # sqrt(zr^2 + zj^2)
+    vadd(s6, s6, s7)  # s6 <- zr^2 + zj^2
+    # sqrt(A) < B is the same as A < B^2 for non-negative A and B.
+    # This avoids a 14-cycle vsqrt instruction in our innermost loop! :)
+    ##vsqrt(s6, s6)  # sqrt(zr^2 + zj^2)
     # if abs(z) > 2
     vcmp(s6, s4)
     vmrs(APSR_nzcv, FPSCR)
@@ -158,11 +180,12 @@ def _xloop_iterate_and_set_pixels(r0, r1):
 
     ####
     label(SET_PIXEL)
-    ldr(r3, [r0, 0x00])  # r3 <- address of bit_buf
-    ldr(r5, [r0, 0x04])  # r5 <- width
-    vmov(r6, s20)  # r6 <- y (we stashed it here up top)
+    mov(r3, r9)  # r3 <- address of bit_buf
+    mov(r5, r10)  # r5 <- width
+    mov(r6, r8)  # r6 <- y
     mul(r5, r6)  # r5 <- width * y
     add(r4, r1, r5)  # r4 <- binary_idx (width * y + x)
+    #mla(r4, r5, r6, r1) @asm_thumb doesn't support mla?
     mov(r5, r4)  # r5 <- binary_idx
     mov(r7, 3)
     lsr(r4, r7)  # r4 <- byte_idx
@@ -171,7 +194,7 @@ def _xloop_iterate_and_set_pixels(r0, r1):
     sub(r5, r7, r5)  # r5 <- bit_no
     mov(r6, 1)
     lsl(r6, r5)  # r6 <- (1 << bit_no)
-    add(r3, r3, r4)  # r1 <- &bit_buf[byte_idx]
+    add(r3, r3, r4)  # r3 <- &bit_buf[byte_idx]
     ldrb(r4, [r3, 0])  # r4 <- bit_buf[byte_idx]
     mov(r7, 1)
     and_(r2, r7)  # r2 <- value &= 1  (sets branch flags)
@@ -186,6 +209,7 @@ def _xloop_iterate_and_set_pixels(r0, r1):
     #### end SET_PIXEL
 
     label(RETURN)
+    pop({r8,r9,r10,r11,r12})
 
 
 # Created based on looking up how others have written Mandlebrot and Julia

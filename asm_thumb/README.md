@@ -52,9 +52,16 @@ Julia fractal computation performance.
 
 ## + Fix the bug in the above
 
-**0.199 seconds** now that we are computing the correct thing.
+0.199 seconds - now that we are computing the correct thing.
 
-# You Made This Look Easy / How Hard Was This?
+## Optimize the x-loop assembly code.
+
+**0.156 seconds**!
+
+Instructions and memory loads were moved outside of loops and the 14 cycle
+`vsqrt` instruction was removed by rethinking our math needs.
+
+# You Made This Look Too Easy a.k.a. How Hard Was This?
 
 It wasn't easy!  I spent numerous multi-hour stretches on random evenings
 or weekends in early 2018 weeks hammering this out.  I wasn't using git
