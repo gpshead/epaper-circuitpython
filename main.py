@@ -64,7 +64,7 @@ class StatusLED:
     def __init__(self):
         if hasattr(board, 'NEOPIXEL'):
             import neopixel
-            self._led = nepixel.NeoPixel(board.NEOPIXEL, 1)
+            self._led = neopixel.NeoPixel(board.NEOPIXEL, 1)
             self._led.brightness = 1/16
         elif hasattr(board, 'APA102_MOSI'):
             import adafruit_dotstar
