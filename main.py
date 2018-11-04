@@ -106,13 +106,15 @@ def main():
             led.busy()
 
         if keys[0]:
+            print("Computing Mandlebrot fractal.")
+            fractal_image = fractal.get_fractal(epd.width, epd.height,
+                                                use_julia=False)
+            print("Displaying.")
+            epd.display_frame_buf(fractal_image.bit_buf)
+            del fractal_image
+        elif keys[1]:
             print("Setting display to white.")
             raw_framebuf = bytearray(b'\xff') * epd.fb_bytes
-            epd.display_frame_buf(raw_framebuf)
-            del raw_framebuf
-        elif keys[1]:
-            print("Setting display to black.")
-            raw_framebuf = bytearray(epd.fb_bytes)
             epd.display_frame_buf(raw_framebuf)
             del raw_framebuf
         elif keys[2]:
@@ -123,9 +125,10 @@ def main():
             epd.display_frame_buf(raw_framebuf)
             del raw_framebuf
         elif keys[3]:
-            print("Computing fractal")
-            fractal_image = fractal.get_fractal(epd.width, epd.height)
-            print("Displaying fractal.")
+            print("Computing Julia fractal.")
+            fractal_image = fractal.get_fractal(epd.width, epd.height,
+                                                use_julia=True)
+            print("Displaying.")
             epd.display_frame_buf(fractal_image.bit_buf)
             del fractal_image
         else:
