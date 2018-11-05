@@ -3,7 +3,7 @@
 This package is where the fun continues... when originally writing
 the code, I was happy in the "Yay, it works!" sense, but wasn't
 satisfied with the speed _and_ wanted to get my hands dirty with
-some of the fancier MicroPython features and learn some ARM assembly.
+a fancy MicroPython feature to learn some ARM assembly.
 
 A microcontroller running at 25x the clock speed of my old PCjr
 should have no trouble spitting out fractals in the blink of an eye,
@@ -13,8 +13,9 @@ Challenge accepted, lets give it a whirl.
 ## Prerequisite: Build a custom CircuitPython (!)
 
 To use any code in this subdirectory you will need to make a custom
-build of CircuitPython 3 or later and flash it to your device.  Edit
-the `ports/atmel-samd/mpconfigport.h` file and ensure the following
+build of [CircuitPython](https://github.com/adafruit/circuitpython) 3
+or later and flash it to your device.  Edit the
+`ports/atmel-samd/mpconfigport.h` file and ensure the following
 lines are present.  By default, if they exist, they are probably `(0)`
 to disable the feature to save space instead of our required `(1)`.
 
