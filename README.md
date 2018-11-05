@@ -10,8 +10,10 @@ with a demo that draws a Julia or Mandlebrot fractal on the display.
 
 # Hardware and Software Requirements
 
-This code was written and tested on an Adafruit Metro M4 running
-CircuitPython 3.0.
+This code was written and tested on an Adafruit Metro M4 running CircuitPython
+3.0.  The e-Paper display code should work on anything capable of running
+CircuitPython.  The fractal demo requires floating point; it'll be extremely
+slow if you get it running on an M0.
 
 The e-Paper displays are the monochrome SPI varities from Waveshare.
 Six digital I/O pins are required.
