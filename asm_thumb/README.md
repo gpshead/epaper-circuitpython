@@ -3,9 +3,9 @@
 This package is where the fun continues... when originally writing
 the code, I was happy in the "Yay, it works!" sense, but wasn't
 satisfied with the speed _and_ wanted to get my hands dirty with
-some of the fancier Micropython features and learn some ARM assembly.
+some of the fancier MicroPython features and learn some ARM assembly.
 
-A microcontroller running at 10x-25x the clock speed of my old PCjr
+A microcontroller running at 25x the clock speed of my old PCjr
 should have no trouble spitting out fractals in the blink of an eye,
 made even easier as the M4 has floating point hardware!
 Challenge accepted, lets give it a whirl.
@@ -13,16 +13,19 @@ Challenge accepted, lets give it a whirl.
 ## Prerequisite: Build a custom CircuitPython (!)
 
 To use any code in this subdirectory you will need to make a custom
-build of CircuitPython 3 for this and flash it to your device.  My
-circuitpython tree is in git repo hell at the moment but I believe the
-main thing to do before building is to set `MICROPY_EMIT_INLINE_THUMB`
-to `(1)` in `ports/atmel-samd/mpconfigport.h`.
+build of CircuitPython 3 or later and flash it to your device.  Edit
+the `ports/atmel-samd/mpconfigport.h` file and ensure the following
+lines are present.  By default, if they exist, they are probably `(0)`
+to disable the feature to save space instead of our required `(1)`.
 
-With that you can build a `@micropython.asm_thumb` enabled interpreter
-and install it in your M4.
+```c
+#define MICROPY_EMIT_INLINE_THUMB   (1)
+#define MICROPY_EMIT_INLINE_THUMB_FLOAT (1)
+```
 
-TODO: Update this section with modern instructions on how to do this
-build and flashing the next time I update that tree.
+With that change saved, build your atmel-samd interpreter following the normal
+CircuitPython build instructions and it will be `@micropython.asm_thumb`
+enabled.
 
 # Performance Results
 
@@ -105,11 +108,25 @@ newly acquired epd2in9 display which made me actually look closely at what was
 on the screen...  One row of pixels at the edge was simply wrong.  Look at
 the diff to see why.  I spent many hours over many days puzzling over that.
 
-# Future Optimization Work
+# Future Work
 
-MicroPython has other intermediate optimization levels available that
-do not entail writing native assembly code.  I want to get a CircuitPython
-build working with those enabled and explore their performance.
+MicroPython is _supposed_ to support non-assembly optimization features via
+`@micropython.native` (similar to Cython) and a Numba like `@micropython.viper`
+dynamic compiler.
+
+I'd love to test out their performance, but I have been unable to get them to
+build properly in my circuitpython tree.  Viper might do well for the
+`MonoBitmap.set_pixel` function, but without support for floats it would not be
+of much help for the inner loop complex math iteration.
+
+It is also possible to write fractal algorithms using only integers.  Great for
+running on previous generation smaller MCUs without floating point.  The
+[famous fractint](https://fractint.org) program has been a repository of that
+art for decades.  If you are really looking to get fractals on a smaller MCU
+without floating point, you may find inspiration there.  There are also a
+people who have made real time [FPGA implementations of
+Mandlebrot](https://www.google.com/search?q=fpga+mandlebrot).  Who needs a
+microcontroller at all?
 
 # Caveats
 
