@@ -30,10 +30,6 @@ import time
 
 from . import epdif
 
-# Display resolution
-EPD_WIDTH       = 176
-EPD_HEIGHT      = 264
-
 # EPD2IN7 commands
 PANEL_SETTING                               = 0x00
 POWER_SETTING                               = 0x01
@@ -74,12 +70,13 @@ ACTIVE_PROGRAM                              = 0xA1
 READ_OTP_DATA                               = 0xA2
 
 class EPD:
+    width = 176
+    height = 264
+
     def __init__(self):
         self.reset_pin = None
         self.dc_pin = None
         self.busy_pin = None
-        self.width = EPD_WIDTH
-        self.height = EPD_HEIGHT
 
     # TODO convert to raw bytes literals to save space / mem / import time
     lut_vcom_dc = bytes((

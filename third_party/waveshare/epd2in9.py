@@ -30,10 +30,6 @@ import time
 
 from . import epdif
 
-# Display resolution
-EPD_WIDTH       = 128
-EPD_HEIGHT      = 296
-
 # EPD2IN9 commands
 DRIVER_OUTPUT_CONTROL                       = 0x01
 BOOSTER_SOFT_START_CONTROL                  = 0x0C
@@ -59,12 +55,13 @@ TERMINATE_FRAME_READ_WRITE                  = 0xFF
 
 
 class EPD:
+    width = 128
+    height = 296
+
     def __init__(self):
         self.reset_pin = None
         self.dc_pin = None
         self.busy_pin = None
-        self.width = EPD_WIDTH
-        self.height = EPD_HEIGHT
         self.lut = self.lut_full_update
 
     # TODO convert to raw bytes literals to save space / mem / import time
@@ -116,8 +113,8 @@ class EPD:
         self.lut = lut or self.lut_full_update
         self.reset()
         self._send_command(DRIVER_OUTPUT_CONTROL)
-        self._send_data((EPD_HEIGHT - 1) & 0xFF)
-        self._send_data(((EPD_HEIGHT - 1) >> 8) & 0xFF)
+        self._send_data((self.height - 1) & 0xFF)
+        self._send_data(((self.height - 1) >> 8) & 0xFF)
         self._send_data(0x00)                     # GD = 0 SM = 0 TB = 0
         self._send_command(BOOSTER_SOFT_START_CONTROL)
         self._send_data(0xD7)
