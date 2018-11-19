@@ -23,6 +23,7 @@ import time
 
 from third_party.waveshare import epd2in7 as connected_epd
 #from third_party.waveshare import epd2in9 as connected_epd
+#from third_party.waveshare import epd2in13 as connected_epd
 
 try:
     # Optimized version - requires a custom CircuitPython build.
