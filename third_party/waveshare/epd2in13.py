@@ -1,3 +1,5 @@
+# Ported to CircuitPython 3.0 by Gregory P. Smith
+
 ##
  #  @filename   :   epd2in13.py
  #  @brief      :   Implements for e-paper library
@@ -24,13 +26,9 @@
  # THE SOFTWARE.
  #
 
-import epdif
-import Image
-import RPi.GPIO as GPIO
+import time
 
-# Display resolution
-EPD_WIDTH       = 128
-EPD_HEIGHT      = 250
+from . import epdif
 
 # EPD2IN13 commands
 DRIVER_OUTPUT_CONTROL                       = 0x01
@@ -56,131 +54,120 @@ SET_RAM_Y_ADDRESS_COUNTER                   = 0x4F
 TERMINATE_FRAME_READ_WRITE                  = 0xFF
 
 class EPD:
+    width = 128  # physically 122, logically 128
+    height = 250
+
     def __init__(self):
         self.reset_pin = epdif.RST_PIN
         self.dc_pin = epdif.DC_PIN
         self.busy_pin = epdif.BUSY_PIN
-        self.width = EPD_WIDTH
-        self.height = EPD_HEIGHT
         self.lut = self.lut_full_update
 
-    lut_full_update = [
+    # TODO convert to raw bytes literals to save space / mem / import time
+    lut_full_update = bytes((
         0x22, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x11,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E,
         0x01, 0x00, 0x00, 0x00, 0x00, 0x00
-    ]
+    ))
 
-    lut_partial_update  = [
+    lut_partial_update  = bytes((
         0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x0F, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-    ]
+    ))
 
-    def digital_write(self, pin, value):
-        epdif.epd_digital_write(pin, value)
+    def _delay_ms(self, ms):
+        time.sleep(ms / 1000.)
 
-    def digital_read(self, pin):
-        return epdif.epd_digital_read(pin)
+    def _send_command(self, command):
+        self.dc_pin.value = 0
+        epdif.spi_transfer(command.to_bytes(1, 'big'))
 
-    def delay_ms(self, delaytime):
-        epdif.epd_delay_ms(delaytime)
+    def _send_data(self, data):
+        self.dc_pin.value = 1
+        if isinstance(data, int):
+            epdif.spi_transfer(data.to_bytes(1, 'big'))
+        else:
+            # The EPD needs CS to cycle hi between every byte so we loop doing
+            # one byte transfers to cause that.  Not efficient, but it makes
+            # it work.  Data sheets say needs to be at least a 60ns CS pulse.
+            for i in range(len(data)):
+                epdif.spi_transfer(data[i:i+1])
 
-    def send_command(self, command):
-        self.digital_write(self.dc_pin, GPIO.LOW)
-        # the parameter type is list but not int
-        # so use [command] instead of command
-        epdif.spi_transfer([command])
+    @property
+    def fb_bytes(self):
+        return self.width * self.height // 8
 
-    def send_data(self, data):
-        self.digital_write(self.dc_pin, GPIO.HIGH)
-        # the parameter type is list but not int
-        # so use [data] instead of data
-        epdif.spi_transfer([data])
-
-    def init(self, lut):
-        if (epdif.epd_init() != 0):
-            return -1
+    def init(self, lut=None):
+        try:
+            epdif.epd_io_bus_init()
+        except RuntimeError:
+            pass  # It avoids global io bus reinitialization.  Good.
+        self.reset_pin = epdif.RST_PIN
+        self.dc_pin = epdif.DC_PIN
+        self.busy_pin = epdif.BUSY_PIN
         # EPD hardware init start
-        self.lut = lut
+        self.lut = lut or self.lut_full_update
         self.reset()
-        self.send_command(DRIVER_OUTPUT_CONTROL)
-        self.send_data((EPD_HEIGHT - 1) & 0xFF)
-        self.send_data(((EPD_HEIGHT - 1) >> 8) & 0xFF)
-        self.send_data(0x00)                     # GD = 0 SM = 0 TB = 0
-        self.send_command(BOOSTER_SOFT_START_CONTROL)
-        self.send_data(0xD7)
-        self.send_data(0xD6)
-        self.send_data(0x9D)
-        self.send_command(WRITE_VCOM_REGISTER)
-        self.send_data(0xA8)                     # VCOM 7C
-        self.send_command(SET_DUMMY_LINE_PERIOD)
-        self.send_data(0x1A)                     # 4 dummy lines per gate
-        self.send_command(SET_GATE_TIME)
-        self.send_data(0x08)                     # 2us per line
-        self.send_command(DATA_ENTRY_MODE_SETTING)
-        self.send_data(0x03)                     # X increment Y increment
+        self._send_command(DRIVER_OUTPUT_CONTROL)
+        self._send_data((self.height - 1) & 0xFF)
+        self._send_data(((self.height - 1) >> 8) & 0xFF)
+        self._send_data(0x00)                     # GD = 0 SM = 0 TB = 0
+        self._send_command(BOOSTER_SOFT_START_CONTROL)
+        self._send_data(0xD7)
+        self._send_data(0xD6)
+        self._send_data(0x9D)
+        self._send_command(WRITE_VCOM_REGISTER)
+        self._send_data(0xA8)                     # VCOM 7C
+        self._send_command(SET_DUMMY_LINE_PERIOD)
+        self._send_data(0x1A)                     # 4 dummy lines per gate
+        self._send_command(SET_GATE_TIME)
+        self._send_data(0x08)                     # 2us per line
+        self._send_command(DATA_ENTRY_MODE_SETTING)
+        self._send_data(0x03)                     # X increment Y increment
         self.set_lut(self.lut)
         # EPD hardware init end
         return 0
 
     def wait_until_idle(self):
-        while(self.digital_read(self.busy_pin) == 1):      # 0: idle, 1: busy
-            self.delay_ms(100)
+        while self.busy_pin.value == 1:      # 0: idle, 1: busy
+            self._delay_ms(10)
+
 ##
  #  @brief: module reset.
  #          often used to awaken the module in deep sleep,
  ##
     def reset(self):
-        self.digital_write(self.reset_pin, GPIO.LOW)         # module reset
-        self.delay_ms(200)
-        self.digital_write(self.reset_pin, GPIO.HIGH)
-        self.delay_ms(200)    
+        self.reset_pin.value = 0         # module reset
+        self._delay_ms(200)
+        self.reset_pin.value = 1
+        self._delay_ms(200)
 
 ##
  #  @brief: set the look-up table register
  ##
     def set_lut(self, lut):
         self.lut = lut
-        self.send_command(WRITE_LUT_REGISTER)
-        # the length of look-up table is 30 bytes
-        for i in range(0, len(lut)):
-            self.send_data(self.lut[i])
-
-##
- #  @brief: convert an image to a buffer
- ##
-    def get_frame_buffer(self, image):
-        buf = [0x00] * (self.width * self.height / 8)
-        # Set buffer to value of Python Imaging Library image.
-        # Image must be in mode 1.
-        image_monocolor = image.convert('1')
-        imwidth, imheight = image_monocolor.size
-        if imwidth != self.width or imheight != self.height:
-            raise ValueError('Image must be same dimensions as display \
-                ({0}x{1}).' .format(self.width, self.height))
-
-        pixels = image_monocolor.load()
-        for y in range(self.height):
-            for x in range(self.width):
-                # Set the bits for the column of pixels at the current position.
-                if pixels[x, y] != 0:
-                    buf[(x + y * self.width) / 8] |= 0x80 >> (x % 8)
-        return buf
+        assert len(self.lut) == 30  # the length of look-up table is 30 bytes
+        self._send_command(WRITE_LUT_REGISTER)
+        self._send_data(self.lut)
 
 ##
  #  @brief: put an image to the frame memory.
  #          this won't update the display.
  ##
-    def set_frame_memory(self, image, x, y):
-        if (image == None or x < 0 or y < 0):
-            return
-        image_monocolor = image.convert('1')
-        image_width, image_height  = image_monocolor.size
-        # x point must be the multiple of 8 or the last 3 bits will be ignored
-        x = x & 0xF8
-        image_width = image_width & 0xF8
+    def set_frame_memory(self, bitmap, x, y):
+        """Place bitmap at x (multiple of 8), y in the EPD frame buffer.
+
+        bitmap: A MonoBitmap instance; must be a multiple of 8 wide.
+        """
+        if x & 0x7 or bitmap.width & 0x7 or x < 0 or y < 0:
+            raise ValueError('bad x, y, or width: %d, %d, %d'
+                             % (x, y, bitmap.width))
+        image_width = bitmap.width
+        image_height = bitmap.height
         if (x + image_width >= self.width):
             x_end = self.width - 1
         else:
@@ -189,33 +176,25 @@ class EPD:
             y_end = self.height - 1
         else:
             y_end = y + image_height - 1
-        self.set_memory_area(x, y, x_end, y_end)
-        # send the image data
-        pixels = image_monocolor.load()
-        byte_to_send = 0x00
+        self._set_memory_area(x, y, x_end, y_end)
         for j in range(y, y_end + 1):
-            self.set_memory_pointer(x, j)
-            self.send_command(WRITE_RAM)
-            # 1 byte = 8 pixels, steps of i = 8
-            for i in range(x, x_end + 1):
-                # Set the bits for the column of pixels at the current position.
-                if pixels[i - x, j - y] != 0:
-                    byte_to_send |= 0x80 >> (i % 8)
-                if (i % 8 == 7):
-                    self.send_data(byte_to_send)
-                    byte_to_send = 0x00
+            # The 2.13" display only likes receiving one row of data at a time.
+            self._set_memory_pointer(x, j)
+            offset = j * self.width // 8
+            self._send_command(WRITE_RAM)
+            self._send_data(bitmap.bit_buf[offset+x:offset+(x_end//8)+1])
 
 ##
  #  @brief: clear the frame memory with the specified color.
  #          this won't update the display.
  ##
     def clear_frame_memory(self, color):
-        self.set_memory_area(0, 0, self.width - 1, self.height - 1)
-        self.set_memory_pointer(0, 0)
-        self.send_command(WRITE_RAM)
+        self._set_memory_area(0, 0, self.width - 1, self.height - 1)
+        self._set_memory_pointer(0, 0)
+        self._send_command(WRITE_RAM)
         # send the color data
         for i in range(0, self.width / 8 * self.height):
-            self.send_data(color)
+            self._send_data(color)
 
 ##
  #  @brief: update the display
@@ -225,36 +204,51 @@ class EPD:
  #          set the other memory area.
  ##
     def display_frame(self):
-        self.send_command(DISPLAY_UPDATE_CONTROL_2)
-        self.send_data(0xC4)
-        self.send_command(MASTER_ACTIVATION)
-        self.send_command(TERMINATE_FRAME_READ_WRITE)
+        self._send_command(DISPLAY_UPDATE_CONTROL_2)
+        self._send_data(0xC4)
+        self._send_command(MASTER_ACTIVATION)
+        self._send_command(TERMINATE_FRAME_READ_WRITE)
         self.wait_until_idle()
+
+    def display_frame_buf(self, frame_buffer):
+        assert len(frame_buffer) == self.fb_bytes
+        # TODO: determine if the dual memory display update is required.
+        for _ in (1, 2):
+            self._set_memory_area(0, 0, self.width-1, self.height-1)
+            for j in range(0, self.height):
+                # The 2.13" display only likes receiving one row of data at a time.
+                self._set_memory_pointer(0, j)
+                offset = j * self.width // 8
+                self._send_command(WRITE_RAM)
+                self._send_data(frame_buffer[offset:offset + (self.width//8) + 1])
+            self.display_frame()
 
 ##
  #  @brief: specify the memory area for data R/W
  ##
-    def set_memory_area(self, x_start, y_start, x_end, y_end):
-        self.send_command(SET_RAM_X_ADDRESS_START_END_POSITION)
-        # x point must be the multiple of 8 or the last 3 bits will be ignored
-        self.send_data((x_start >> 3) & 0xFF)
-        self.send_data((x_end >> 3) & 0xFF)
-        self.send_command(SET_RAM_Y_ADDRESS_START_END_POSITION)
-        self.send_data(y_start & 0xFF)
-        self.send_data((y_start >> 8) & 0xFF)
-        self.send_data(y_end & 0xFF)
-        self.send_data((y_end >> 8) & 0xFF)
+    def _set_memory_area(self, x_start, y_start, x_end, y_end):
+        if x_start & 0x7:
+            raise ValueError('x must be a multiple of 8 (%d)' % (x_start,))
+        self._send_command(SET_RAM_X_ADDRESS_START_END_POSITION)
+        self._send_data((x_start >> 3) & 0xFF)
+        self._send_data((x_end >> 3) & 0xFF)
+        self._send_command(SET_RAM_Y_ADDRESS_START_END_POSITION)
+        self._send_data(y_start & 0xFF)
+        self._send_data((y_start >> 8) & 0xFF)
+        self._send_data(y_end & 0xFF)
+        self._send_data((y_end >> 8) & 0xFF)
 
 ##
  #  @brief: specify the start point for data R/W
  ##
-    def set_memory_pointer(self, x, y):
-        self.send_command(SET_RAM_X_ADDRESS_COUNTER)
-        # x point must be the multiple of 8 or the last 3 bits will be ignored
-        self.send_data((x >> 3) & 0xFF)
-        self.send_command(SET_RAM_Y_ADDRESS_COUNTER)
-        self.send_data(y & 0xFF)
-        self.send_data((y >> 8) & 0xFF)
+    def _set_memory_pointer(self, x, y):
+        if x & 0x7:
+            raise ValueError('x must be a multiple of 8')
+        self._send_command(SET_RAM_X_ADDRESS_COUNTER)
+        self._send_data((x >> 3) & 0xFF)
+        self._send_command(SET_RAM_Y_ADDRESS_COUNTER)
+        self._send_data(y & 0xFF)
+        self._send_data((y >> 8) & 0xFF)
         self.wait_until_idle()
 
 ##
@@ -264,7 +258,7 @@ class EPD:
  #          You can use reset() to awaken or init() to initialize
  ##
     def sleep(self):
-        self.send_command(DEEP_SLEEP_MODE)
+        self._send_command(DEEP_SLEEP_MODE)
         self.wait_until_idle()
 
 ### END OF FILE ###
