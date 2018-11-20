@@ -177,9 +177,15 @@ class EPD:
         else:
             y_end = y + image_height - 1
         self._set_memory_area(x, y, x_end, y_end)
-        self._set_memory_pointer(x, y)
-        self._send_command(WRITE_RAM)
-        self._send_data(bitmap.bit_buf)
+        for j in range(y, y_end + 1):
+            # The 2.13" display only likes receiving one row of data per WRITE_RAM.
+            # At a guess: Internally it may be bit based and does this to avoid
+            # implementing skipping partial end of row bytes given the non
+            # multiple of 8 width resolution?
+            self._set_memory_pointer(x, j)
+            offset = j * self.width // 8
+            self._send_command(WRITE_RAM)
+            self._send_data(bitmap.bit_buf[offset+x:offset+(x_end//8)+1])
 
 
 ##
@@ -189,10 +195,13 @@ class EPD:
     def clear_frame_memory(self, color=0xff):
         self._set_memory_area(0, 0, self.width - 1, self.height - 1)
         self._set_memory_pointer(0, 0)
-        self._send_command(WRITE_RAM)
         # send the color data
-        for i in range(0, self.width // 8 * self.height):
-            self._send_data(color)
+        for j in range(0, self.height):
+            # Some displays only accept one row of data per WRITE_RAM.
+            self._set_memory_pointer(0, j)
+            self._send_command(WRITE_RAM)
+            for _ in range(self.width // 8 + 1):
+                self._send_data(color)
 
 ##
  #  @brief: update the display
@@ -209,13 +218,16 @@ class EPD:
         self.wait_until_idle()
 
     def display_frame_buf(self, frame_buffer):
-        """."""
         assert len(frame_buffer) == self.fb_bytes
+        # TODO: determine if the dual memory display update is required.
         for _ in (1, 2):
             self._set_memory_area(0, 0, self.width-1, self.height-1)
-            self._set_memory_pointer(0, 0)
-            self._send_command(WRITE_RAM)
-            self._send_data(frame_buffer)
+            for j in range(0, self.height):
+                # Some displays only accept one row of data per WRITE_RAM.
+                self._set_memory_pointer(0, j)
+                offset = j * self.width // 8
+                self._send_command(WRITE_RAM)
+                self._send_data(frame_buffer[offset:offset + (self.width//8) + 1])
             self.display_frame()
 
     def display_bitmap(self, bitmap):
