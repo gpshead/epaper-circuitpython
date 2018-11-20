@@ -111,7 +111,7 @@ def main():
             fractal_image = fractal.get_fractal(epd.width, epd.height,
                                                 use_julia=False)
             print("Displaying.")
-            epd.display_frame_buf(fractal_image.bit_buf)
+            epd.display_bitmap(fractal_image, fast_ghosting=True)
             del fractal_image
         elif keys[1]:
             print("Setting display to white.")
@@ -122,14 +122,14 @@ def main():
             for pos in range(len(raw_framebuf)):
                 raw_framebuf[pos] = random.randint(0, 256)
             print("Displaying random framebuf.")
-            epd.display_frame_buf(raw_framebuf)
+            epd.display_frame_buf(raw_framebuf, fast_ghosting=True)
             del raw_framebuf
         elif keys[3]:
             print("Computing Julia fractal.")
             fractal_image = fractal.get_fractal(epd.width, epd.height,
                                                 use_julia=True)
             print("Displaying.")
-            epd.display_frame_buf(fractal_image.bit_buf)
+            epd.display_bitmap(fractal_image, fast_ghosting=True)
             del fractal_image
         else:
             # This effectively debounces the keys, we merely sample them
