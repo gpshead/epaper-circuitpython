@@ -58,9 +58,9 @@ class EPD:
     height = 250
 
     def __init__(self):
-        self.reset_pin = epdif.RST_PIN
-        self.dc_pin = epdif.DC_PIN
-        self.busy_pin = epdif.BUSY_PIN
+        self.reset_pin = None
+        self.dc_pin = None
+        self.busy_pin = None
         self.lut = self.lut_full_update
 
     # TODO convert to raw bytes literals to save space / mem / import time
@@ -129,7 +129,6 @@ class EPD:
         self._send_data(0x03)                     # X increment Y increment
         self.set_lut(self.lut)
         # EPD hardware init end
-        return 0
 
     def wait_until_idle(self):
         while self.busy_pin.value == 1:      # 0: idle, 1: busy
@@ -148,8 +147,8 @@ class EPD:
 ##
  #  @brief: set the look-up table register
  ##
-    def set_lut(self, lut):
-        self.lut = lut
+    def set_lut(self, lut=None):
+        self.lut = lut or self.lut_full_update
         assert len(self.lut) == 30  # the length of look-up table is 30 bytes
         self._send_command(WRITE_LUT_REGISTER)
         self._send_data(self.lut)
@@ -188,12 +187,12 @@ class EPD:
  #  @brief: clear the frame memory with the specified color.
  #          this won't update the display.
  ##
-    def clear_frame_memory(self, color):
+    def clear_frame_memory(self, color=0xff):
         self._set_memory_area(0, 0, self.width - 1, self.height - 1)
         self._set_memory_pointer(0, 0)
         self._send_command(WRITE_RAM)
         # send the color data
-        for i in range(0, self.width / 8 * self.height):
+        for i in range(0, self.width // 8 * self.height):
             self._send_data(color)
 
 ##
