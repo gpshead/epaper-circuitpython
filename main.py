@@ -115,9 +115,8 @@ def main():
             del fractal_image
         elif keys[1]:
             print("Setting display to white.")
-            raw_framebuf = bytearray(b'\xff') * epd.fb_bytes
-            epd.display_frame_buf(raw_framebuf)
-            del raw_framebuf
+            epd.clear_frame_memory(0xff)
+            epd.display_frame()
         elif keys[2]:
             raw_framebuf = bytearray(epd.fb_bytes)
             for pos in range(len(raw_framebuf)):
