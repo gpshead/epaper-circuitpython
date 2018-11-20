@@ -247,7 +247,21 @@ class EPD:
         self.send_command(LUT_BLACK_TO_BLACK)         # bb b
         self.send_data(self.lut_wb)
 
-    def display_frame_buf(self, frame_buffer):
+    def clear_frame_memory(self, pattern=0xff):
+        """Fill the frame memory with a pattern byte. Does not call update."""
+        self.send_command(DATA_START_TRANSMISSION_2)
+        self.delay_ms(2)
+        row = pattern.to_bytes(1, 'big') * ((self.width + 7) // 8)
+        for j in range(self.height):
+            self.send_data(row)
+
+    def display_frame(self):
+        # TODO Determine if the 2.7" display can do double buffering.
+        self.send_command(DISPLAY_REFRESH)
+        self.wait_until_idle()
+
+    def display_frame_buf(self, frame_buffer, fast_ghosting=None):
+        """fast_ghosting ignored on the 2.7" display; it is always slow."""
         fb_bytes = self.width * self.height // 8
         assert len(frame_buffer) == fb_bytes
 
@@ -267,8 +281,14 @@ class EPD:
         self.send_data(frame_buffer)
         self.delay_ms(2)
 
-        self.send_command(DISPLAY_REFRESH)
-        self.wait_until_idle()
+        self.display_frame()
+
+    def display_bitmap(self, bitmap, fast_ghosting=False):
+        """Render a MonoBitmap onto the display.
+
+        fast_ghosting ignored on the 2.7" display; it is always slow.
+        """
+        self.display_frame_buf(bitmap.bit_buf, fast_ghosting=fast_ghosting)
 
     # After this command is transmitted, the chip would enter the deep-sleep
     # mode to save power. The deep sleep mode would return to standby by

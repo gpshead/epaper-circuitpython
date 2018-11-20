@@ -59,6 +59,7 @@ class EPD:
     height = 296
 
     def __init__(self):
+        assert not (self.width & 3), "width must be a multiple of 8"
         self.reset_pin = None
         self.dc_pin = None
         self.busy_pin = None
@@ -187,21 +188,16 @@ class EPD:
             self._send_command(WRITE_RAM)
             self._send_data(bitmap.bit_buf[offset+x:offset+(x_end//8)+1])
 
-
-##
- #  @brief: clear the frame memory with the specified color.
- #          this won't update the display.
- ##
-    def clear_frame_memory(self, color=0xff):
+    def clear_frame_memory(self, pattern=0xff):
+        """Fill the frame memory with a pattern byte. Does not call update."""
         self._set_memory_area(0, 0, self.width - 1, self.height - 1)
         self._set_memory_pointer(0, 0)
-        # send the color data
-        for j in range(0, self.height):
+        row = pattern.to_bytes(1, 'big') * ((self.width + 7) // 8)
+        for j in range(self.height):
             # Some displays only accept one row of data per WRITE_RAM.
             self._set_memory_pointer(0, j)
             self._send_command(WRITE_RAM)
-            for _ in range(self.width // 8 + 1):
-                self._send_data(color)
+            self._send_data(row)
 
 ##
  #  @brief: update the display
@@ -211,16 +207,16 @@ class EPD:
  #          set the other memory area.
  ##
     def display_frame(self):
+        """Calling this will swap the display for the other buffer."""
         self._send_command(DISPLAY_UPDATE_CONTROL_2)
         self._send_data(0xC4)
         self._send_command(MASTER_ACTIVATION)
         self._send_command(TERMINATE_FRAME_READ_WRITE)
         self.wait_until_idle()
 
-    def display_frame_buf(self, frame_buffer):
+    def display_frame_buf(self, frame_buffer, fast_ghosting=False):
         assert len(frame_buffer) == self.fb_bytes
-        # TODO: determine if the dual memory display update is required.
-        for _ in (1, 2):
+        for _ in range(2):
             self._set_memory_area(0, 0, self.width-1, self.height-1)
             for j in range(0, self.height):
                 # Some displays only accept one row of data per WRITE_RAM.
@@ -229,26 +225,28 @@ class EPD:
                 self._send_command(WRITE_RAM)
                 self._send_data(frame_buffer[offset:offset + (self.width//8) + 1])
             self.display_frame()
+            if fast_ghosting:
+                break
 
-    def display_bitmap(self, bitmap):
-        """Render a MonoBitmap onto the display."""
-##
- # there are 2 memory areas embedded in the e-paper display
- # and once the display is refreshed, the memory area will be auto-toggled,
- # i.e. the next action of SetFrameMemory will set the other memory area
- # therefore you have to set the frame memory twice.
- ##
+    def display_bitmap(self, bitmap, fast_ghosting=False):
+        """Render a MonoBitmap onto the display.
+
+        Args:
+          bitmap: A MonoBitmap instance
+          fast_ghosting: If true the display update is twice as fast by only
+              refreshing once; this can leave a ghost of the previous contents.
+        """
         # TODO: add partial update support.
         # if bitmap size is full frame size and x/y offsets are 0:
         #     epd.init(epd.lut_full_update)
         # else:
         #     epd.init(epd.lut_partial_update)
 
-        # TODO: Determine if the dual memory is required on my mono 2.9" display.
         self.set_frame_memory(bitmap, 0, 0)
         self.display_frame()
-        self.set_frame_memory(bitmap, 0, 0)
-        self.display_frame()
+        if not fast_ghosting:
+            self.set_frame_memory(bitmap, 0, 0)
+            self.display_frame()
 
 ##
  #  @brief: specify the memory area for data R/W
@@ -287,6 +285,4 @@ class EPD:
     def sleep(self):
         self._send_command(DEEP_SLEEP_MODE)
         self.wait_until_idle()
-
-### END OF FILE ###
 
