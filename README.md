@@ -22,14 +22,12 @@ Six digital I/O pins are required.
 
 * The monochrome 2.7" Waveshare e-Paper display module
 (no hardware partial update support, ~6 seconds to update).
-* The monochrome 2.9" Waveshare e-Paper display module (these have partial
-update support and take ~1-2 seconds to update).
+* The monochrome 2.13" and 2.9" Waveshare e-Paper display modules (these have
+partial update support and take ~1-2 seconds to update).
+* The duochrome 2.13" color Waveshare e-Paper display modules (red or yellow).
 
-Based on my reading I *suspect* the interfaces for two of those cover all of
-the monochrome SPI connected Waveshare display types but others have not yet
-been tested.
-
-Three color displays are not yet supported.
+Based on my reading I *suspect* the interfaces for the above cover all of the
+SPI connected Waveshare display types but others have not yet been tested.
 
 ## Connections
 
