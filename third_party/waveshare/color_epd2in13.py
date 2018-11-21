@@ -26,7 +26,9 @@
  # THE SOFTWARE.
  #
 
-import epdif
+import time
+
+from . import epdif
 
 # EPD2IN13B commands
 PANEL_SETTING                               = 0x00
@@ -70,6 +72,7 @@ POWER_SAVING                                = 0xE3
 class EPD:
     width = 104
     height = 212
+    colors = 3
 
     def __init__(self):
         self.reset_pin = epdif.RST_PIN
@@ -132,22 +135,41 @@ class EPD:
         self.reset_pin.value = 1
         self._delay_ms(200)
 
+    def clear_frame_memory(self, pattern: int, tint_pattern: int = -1):
+        self._send_command(DATA_START_TRANSMISSION_1)
+        self._delay_ms(2)
+        row = pattern.to_bytes(1, 'big') * ((self.width + 7) // 8)
+        for j in range(self.height):
+            self._send_data(row)
+        if tint_pattern < 0:
+            tint_pattern = pattern
+        self._delay_ms(2)
+        self._send_command(DATA_START_TRANSMISSION_2)
+        self._delay_ms(2)
+        row = tint_pattern.to_bytes(1, 'big') * ((self.width + 7) // 8)
+        for j in range(self.height):
+            self._send_data(row)
+        self._delay_ms(2)
+
     # TODO An API that takes a two bits per pixel image input would be good.
+
+    def display_frame(self):
+        self.display_frames(None, None)
 
     def display_frames(self, frame_buffer_black, frame_buffer_red):
         # TODO: assert buffer lengths and _send_data all of it w/o loop?
         if frame_buffer_black:
-            self._send_command(DATA_START_TRANSMISSION_1)           
-            self.delay_ms(2)
+            self._send_command(DATA_START_TRANSMISSION_1)
+            self._delay_ms(2)
             for i in range(0, self.width * self.height / 8):
-                self._send_data(frame_buffer_black[i])  
-            self.delay_ms(2)                  
+                self._send_data(frame_buffer_black[i])
+            self._delay_ms(2)
         if frame_buffer_red:
             self._send_command(DATA_START_TRANSMISSION_2)
-            self.delay_ms(2)
+            self._delay_ms(2)
             for i in range(0, self.width * self.height / 8):
-                self._send_data(frame_buffer_red[i])  
-            self.delay_ms(2)        
+                self._send_data(frame_buffer_red[i])
+            self._delay_ms(2)
 
         self._send_command(DISPLAY_REFRESH)
         self.wait_until_idle()
@@ -156,9 +178,9 @@ class EPD:
     def sleep(self):
         self._send_command(VCOM_AND_DATA_INTERVAL_SETTING)
         self._send_data(0x37)
-        self._send_command(VCM_DC_SETTING_REGISTER)         #to solve Vcom drop 
-        self._send_data(0x00)        
-        self._send_command(POWER_SETTING)         #power setting      
+        self._send_command(VCM_DC_SETTING_REGISTER)         #to solve Vcom drop
+        self._send_data(0x00)
+        self._send_command(POWER_SETTING)         #power setting
         self._send_data(0x02)        #gate switch to external
         self._send_data(b'\x00\x00\x00')
         self._wait_until_idle()
