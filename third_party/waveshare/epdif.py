@@ -28,7 +28,6 @@
 
 import adafruit_bus_device.spi_device
 import board
-import busio
 import digitalio
 
 # Pin definition as hooked up on my Metro M4 (reassigned to instances in init)
@@ -38,8 +37,10 @@ DC_PIN = board.D9
 CS_PIN = board.D10
 BUSY_PIN = board.D7
 
-_SPI_MOSI = board.MOSI
-_SPI_CLK = board.SCK
+#_SPI_MOSI = board.MOSI
+#_SPI_CLK = board.SCK
+_SPI_MOSI = board.A2
+_SPI_CLK = board.A3
 _SPI_BUS = None
 _init = False
 
@@ -66,8 +67,15 @@ def epd_io_bus_init():
     BUSY_PIN = DInOut(BUSY_PIN)
     BUSY_PIN.direction = INPUT
     global _SPI_BUS
+    # bus vs bitbang isn't really important for slow displays, detecting
+    # when to use one vs the other is overkill...
+    if (_SPI_CLK == getattr(board, 'SCK', None) and
+        _SPI_MOSI == getattr(board, 'MOSI', None)):
+        import busio as io_module
+    else:
+        import bitbangio as io_module
     _SPI_BUS = adafruit_bus_device.spi_device.SPIDevice(
-            busio.SPI(_SPI_CLK, _SPI_MOSI), CS_PIN,
+            io_module.SPI(_SPI_CLK, _SPI_MOSI), CS_PIN,
             baudrate=2000000)
 
 ### END OF FILE ###
