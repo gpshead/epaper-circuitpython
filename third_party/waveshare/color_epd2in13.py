@@ -110,20 +110,25 @@ class EPD:
         self.dc_pin = epdif.DC_PIN
         self.busy_pin = epdif.BUSY_PIN
         self.reset()
+        self._send_command(POWER_SETTING)  # Adafruit EPD
+        self._send_data(b'\x03\x00\x2b\x2b\x09')  # Adafruit EPD
         self._send_command(BOOSTER_SOFT_START)
-        self._send_data (0x17)
-        self._send_data (0x17)
-        self._send_data (0x17)
+        self._send_data(b'\x17\x17\x17')
         self._send_command(POWER_ON)
         self.wait_until_idle()
+        # Q: what does this setting do?
         self._send_command(PANEL_SETTING)
-        self._send_data(0x8F)
+        self._send_data(0xCF)  # Adafruit EPD
+        #self._send_data(0x8F)
         self._send_command(VCOM_AND_DATA_INTERVAL_SETTING)
         self._send_data(0x37)
+        self._send_command(PLL_CONTROL)  # Adafruit EPD
+        self._send_data(0x29)  # Adafruit EPD
         self._send_command(RESOLUTION_SETTING)
-        self._send_data (0x68)
-        self._send_data (0x00)
-        self._send_data (0xD4)
+        self._send_data(self.height.to_bytes(2, 'little'))
+        self._send_data(self.width.to_bytes(2, 'little'))
+        self._send_command(VCM_DC_SETTING)  # Adafruit EPD
+        self._send_data(0x0A)  # Adafruit EPD
 
     def wait_until_idle(self):
         while self.busy_pin.value == 1:      # 0: idle, 1: busy
@@ -171,6 +176,8 @@ class EPD:
                 self._send_data(frame_buffer_red[i])
             self._delay_ms(2)
 
+        # Observation: On some EPDs a display refresh won't do anything
+        # unless two buffers have been written.
         self._send_command(DISPLAY_REFRESH)
         self.wait_until_idle()
 
