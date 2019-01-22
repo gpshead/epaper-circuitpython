@@ -21,6 +21,7 @@ import digitalio
 import random
 import time
 
+#from third_party.waveshare import color_epd2in13 as connected_epd
 from third_party.waveshare import epd2in7 as connected_epd
 #from third_party.waveshare import epd2in9 as connected_epd
 #from third_party.waveshare import epd2in13 as connected_epd
@@ -111,7 +112,10 @@ def main():
             fractal_image = fractal.get_fractal(epd.width, epd.height,
                                                 use_julia=False)
             print("Displaying.")
-            epd.display_bitmap(fractal_image, fast_ghosting=True)
+            if getattr(epd, 'colors', 2) > 2:
+                epd.display_frames(None, fractal_image.bit_buf)
+            else:
+                epd.display_bitmap(fractal_image, fast_ghosting=True)
             del fractal_image
         elif keys[1]:
             print("Setting display to white.")
@@ -122,14 +126,24 @@ def main():
             for pos in range(len(raw_framebuf)):
                 raw_framebuf[pos] = random.randint(0, 256)
             print("Displaying random framebuf.")
-            epd.display_frame_buf(raw_framebuf, fast_ghosting=True)
+            if getattr(epd, 'colors', 2) <= 2:
+                epd.display_frame_buf(raw_framebuf, fast_ghosting=True)
+            else:
+                raw_framebuf2 = bytearray(epd.fb_bytes)
+                for pos in range(len(raw_framebuf2)):
+                    raw_framebuf2[pos] = random.randint(0, 256)
+                epd.display_frames(raw_framebuf, raw_framebuf2)
+                del raw_framebuf2
             del raw_framebuf
         elif keys[3]:
             print("Computing Julia fractal.")
             fractal_image = fractal.get_fractal(epd.width, epd.height,
                                                 use_julia=True)
             print("Displaying.")
-            epd.display_bitmap(fractal_image, fast_ghosting=True)
+            if getattr(epd, 'colors', 2) > 2:
+                epd.display_frames(fractal_image.bit_buf, None)
+            else:
+                epd.display_bitmap(fractal_image, fast_ghosting=True)
             del fractal_image
         else:
             # This effectively debounces the keys, we merely sample them
