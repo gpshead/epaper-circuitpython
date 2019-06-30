@@ -124,14 +124,14 @@ def main():
         elif keys[2]:
             raw_framebuf = bytearray(epd.fb_bytes)
             for pos in range(len(raw_framebuf)):
-                raw_framebuf[pos] = random.randint(0, 256)
+                raw_framebuf[pos] = random.randint(0, 255)
             print("Displaying random framebuf.")
             if getattr(epd, 'colors', 2) <= 2:
                 epd.display_frame_buf(raw_framebuf, fast_ghosting=True)
             else:
                 raw_framebuf2 = bytearray(epd.fb_bytes)
                 for pos in range(len(raw_framebuf2)):
-                    raw_framebuf2[pos] = random.randint(0, 256)
+                    raw_framebuf2[pos] = random.randint(0, 255)
                 epd.display_frames(raw_framebuf, raw_framebuf2)
                 del raw_framebuf2
             del raw_framebuf
