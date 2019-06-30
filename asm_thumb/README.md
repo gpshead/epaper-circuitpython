@@ -34,7 +34,7 @@ Using the `third_party.waveshare.epd2in7` display size (176x264) on my Adafruit
 Metro M4 Express (120Mhz SAMD51J19) under CircuitPython 3.0 I observed this
 Julia fractal computation performance.
 
-## Original optimized pure Python code.
+## Original optimized pure CircuitPython 3.0 code.
 
 23.9 seconds
 
@@ -77,6 +77,13 @@ Yes.  The next obvious step would be to move the `for y in range(height)`
 loop into assembly.  If we weren't already an order of magnitude faster
 than the slow e-Paper displays this code was originally a demo for, that
 might make sense.  For that purpose, we've already outdone ourselves. :)
+
+## What about CircuitPython 4.1?
+
+It is noticably faster due to 4.1 enabling some overlooked micropython compile
+time optimizations.  The pure CircuitPython 4.1 Julia fractal computation drops
+from our previous 23.9 down to 16.3 seconds.  The asm version is 0.137 seconds.
+We're only *119x faster* now. :P
 
 # You Made This Look Too Easy a.k.a. How Hard Was This?
 
